@@ -1,0 +1,356 @@
+
+cpu_load_id = "cpuload"
+
+""" Prefs variables """
+
+update_interval = 500
+init_angle = 135
+origin_x = 50
+origin_y = 50
+radius_x = 40
+radius_y = 40
+max_rotation = 270
+number_of_segments = 30
+segment_thickness = 7
+color_min = "#00ff00ff"
+color_mean = "#ffff00ff"
+color_max = "#ff0000ff"
+mean_value = 40
+fixed_font_color = 0
+
+curr_meter = "0"
+
+""" Constants and internal variables that should not be changed """
+
+pi = 3.14159265358979323846
+meter_objects = []
+meter_ids = ("cpu_meter",)
+meter_configs = []
+meter_names = ("CPU",)
+meter_binds = (sysinfo.cpu_load,)
+
+""" Beginning of function code """
+
+def sinus(alpha):
+  alpha_rad = pi * (alpha - 360.0 * int(alpha/360))/180
+  if alpha_rad >= pi:
+    alpha_rad -= 2*pi
+  
+  return alpha_rad - (alpha_rad**3)/6 + (alpha_rad**5)/120 - (alpha_rad**7)/5040 + (alpha_rad**9)/362880 #- (alpha_rad**11)/39916800
+
+def cosinus(alpha):
+  alpha += 90.0
+  return sinus(alpha)
+
+  
+
+
+def main():
+  global meter_configs
+  update_meter_enum()
+  meter_configs = get_config( "meter_configs", "nothing found")
+  if meter_configs is not "nothing found":
+    restore_from_configs()
+  else:
+    for i in range(0, len(meter_ids)):
+      print "init %d. meter, id=%s" % (i, meter_ids[i])
+      meter = SysMeter(meter_ids[i])
+      meter.initialize()
+      meter_objects.append(meter)
+
+  try:
+    getattr(Dsp, "cpuload").x = Unit(50, PERCENT) 
+    getattr(Dsp, "cpuload").y = Unit(50, PERCENT)
+  except:
+    print "blabla"
+
+  add_timer(update_interval, update_loads)
+
+def extract_memory_information():
+  """
+  Struct { .buffer = 99209216, .cached = 1320513536, .free = 194740224, .locked = 0,   
+  .shared = 0, .total = 2124939264, .used = 1930199040, .user = 510476288 }
+  """
+  return
+
+def update_loads(new_value=None):
+  cpu_load = float(sysinfo.cpu_load)
+  if cpu_load_id != None:
+    try:
+      getattr(Dsp, cpu_load_id).value = "%3.2f%%" % cpu_load
+    except:
+      print "bla"
+
+  for i in range(0, len(meter_objects)):
+    try:
+      meter_objects[i]._load = float(cpu_load)
+      meter_objects[i].update_svg()
+    except:
+      print "could not update svg"
+  return True
+
+def update_meter_enum():
+  Prefs.meter_enum.items =  [ ("%s" % meter_names[i], str(i)) for i in range(len(meter_ids)) ]
+
+def set_prefs_values():
+  idx = int(curr_meter)
+  Prefs.init_angle.value          = meter_objects[idx]._init_angle
+  Prefs.origin_x.value            = meter_objects[idx]._origin_x
+  Prefs.origin_y.value            = meter_objects[idx]._origin_y
+  Prefs.radius_x.value            = meter_objects[idx]._radius_x
+  Prefs.radius_y.value            = meter_objects[idx]._radius_y
+  Prefs.max_rotation.value        = meter_objects[idx]._max_rotation
+  Prefs.number_of_segments.value  = meter_objects[idx]._number_of_segments
+  Prefs.segment_thickness.value   = meter_objects[idx]._segment_thickness
+  Prefs.color_min.value           = meter_objects[idx]._color_min
+  Prefs.color_mean.value          = meter_objects[idx]._color_mean
+  Prefs.color_max.value           = meter_objects[idx]._color_max
+  Prefs.mean_value.value          = meter_objects[idx]._mean_value
+  Prefs.fixed_font_color.value    = meter_objects[idx]._fixed_font_color
+
+def restore_from_configs():
+  for i in range(len(meter_configs)):
+    print "init %d. meter, id=%s (from stored config)" % (i, meter_ids[i])
+    meter = SysMeter(meter_ids[i])
+    meter.set_config(meter_configs[i])
+    meter.initialize()
+    meter_objects.append(meter)
+
+
+def save_configurations():
+  global meter_configs
+  
+  meter_configs = []
+  for idx in range(len(meter_ids)):
+    config_string = (\
+                      str(meter_objects[idx]._id),\
+                      int(meter_objects[idx]._init_angle),\
+                      int(meter_objects[idx]._origin_x),\
+                      int(meter_objects[idx]._origin_y),\
+                      int(meter_objects[idx]._radius_x),\
+                      int(meter_objects[idx]._radius_y),\
+                      int(meter_objects[idx]._max_rotation),\
+                      int(meter_objects[idx]._number_of_segments),\
+                      int(meter_objects[idx]._segment_thickness),\
+                      str(meter_objects[idx]._color_min),\
+                      str(meter_objects[idx]._color_mean),\
+                      str(meter_objects[idx]._color_max),\
+                      int(meter_objects[idx]._mean_value),\
+                      bool(meter_objects[idx]._fixed_font_color)\
+                    )
+    meter_configs.append(config_string)
+  set_config("meter_configs", meter_configs)
+
+def preferences_callback(key, value):
+  global number_of_segments, curr_meter
+
+  idx = int(curr_meter)
+  if key == "curr_meter":
+    curr_meter = value
+    set_prefs_values()
+    idx = int(curr_meter)
+
+  elif key == "number_of_segments":
+    meter_objects[idx]._number_of_segments = value
+    meter_objects[idx].initialize()
+  elif key == "max_rotation":
+    meter_objects[idx]._max_rotation = value
+    meter_objects[idx].initialize()
+  elif key == "init_angle":
+    meter_objects[idx]._init_angle = value
+    meter_objects[idx].initialize()
+  elif key == "origin_x":
+    meter_objects[idx]._origin_x = value
+    meter_objects[idx].initialize()
+  elif key == "origin_y":
+    meter_objects[idx]._origin_y = value
+    meter_objects[idx].initialize()
+  elif key == "radius_x":
+    meter_objects[idx]._radius_x = value
+    meter_objects[idx].initialize()
+  elif key == "radius_y":
+    meter_objects[idx]._radius_y = value
+    meter_objects[idx].initialize()
+  elif key == "color_min":
+    meter_objects[idx]._color_min = value
+    meter_objects[idx].initialize()
+  elif key == "color_mean":
+    meter_objects[idx]._color_mean = value
+    meter_objects[idx].initialize()
+  elif key == "color_max":
+    meter_objects[idx]._color_max = value
+    meter_objects[idx].initialize()
+  elif key == "mean_value":
+    meter_objects[idx]._mean_value = value
+    meter_objects[idx].initialize()
+  elif key == "update_interval":
+    cpu_meter_update_interval = value
+  elif key == "fixed_font_color":
+    meter_objects[idx]._fixed_font_color = value
+    if meter_objects[idx]._fixed_font_color: Prefs.fixed_font.enabled = True
+    else: Prefs.fixed_font.enabled = False
+  elif key == "segment_thickness":
+    meter_objects[idx]._segment_thickness = value
+    meter_objects[idx].initialize()
+  
+  save_configurations()
+
+class SysMeter:
+  def __init__(self, identification):
+    self._id = identification
+    self._load = 100
+    self._init_angle = 135
+    self._origin_x = 50
+    self._origin_y = 50
+    self._radius_x = 40
+    self._radius_y = 40
+    self._max_rotation = 270
+    self._number_of_segments = 30
+    self._segment_thickness = 7
+    self._color_min = "#00ff00ff"
+    self._color_mean = "#ffff00ff"
+    self._color_max = "#ff0000ff"
+    self._mean_value = 40
+    self._colors = []
+    self._fixed_font_color = 0
+
+  def initialize(self):
+    SysMeter.make_colors(self)
+    SysMeter.init_svg(self)
+    SysMeter.update_svg(self)
+    
+  def set_config(self, config):
+    self._id, self._init_angle, self._origin_x, self._origin_y                    = config[0:4]
+    self._radius_x, self._radius_y, self._max_rotation, self._number_of_segments  = config[4:8]
+    self._segment_thickness, self._color_min, self._color_mean, self._color_max   = config[8:12]
+    self._mean_value, self._fixed_font_color                                      = config[12:14]
+    
+
+  def make_colors(self):
+    self._colors = []
+    r1, g1, b1 = int(self._color_min[1:3],16), int(self._color_min[3:5],16), int(self._color_min[5:7],16)
+    r2, g2, b2 = int(self._color_mean[1:3],16), int(self._color_mean[3:5],16), int(self._color_mean[5:7],16)
+    r3, g3, b3 = int(self._color_max[1:3],16), int(self._color_max[3:5],16), int(self._color_max[5:7],16)
+  
+    barrier = int((float(self._number_of_segments)/100.0) * float(self._mean_value))
+
+    """ the very first color (color_min) """
+    self._colors.append(self._color_min[0:7])
+
+    """ first colors on range 2...barrier-1 """
+    width = float(barrier-2)
+    if width > 0.:
+      dr, db, dg = float(r2 - r1), float(b2 - b1), float(g2 - g1)
+      step_r, step_g, step_b = dr/width, dg/width, db/width
+      for i in range(1,barrier-1):
+        str_r, str_g, str_b = "","",""
+        if len(hex(int(r1 + i*step_r))[2:4]) < 2:
+          str_r = "0" + hex(int(r1 + i*step_r))[2:4]
+        else:
+          str_r = hex(int(r1 + i*step_r))[2:4]
+      
+        if len(hex(int(g1 + i*step_g))[2:4]) < 2:
+          str_g = "0" + hex(int(g1 + i*step_g))[2:4]
+        else:
+          str_g = hex(int(g1 + i*step_g))[2:4]
+    
+        if len(hex(int(b1 + i*step_b))[2:4]) < 2:
+          str_b = "0" + hex(int(b1 + i*step_b))[2:4]
+        else:
+          str_b = hex(int(b1 + i*step_b))[2:4]
+        self._colors.append("#%s%s%s" % (str_r, str_g, str_b))
+
+    """ the mean color """
+    self._colors.append(self._color_mean[0:7])
+  
+    """ the last colors in range barrier+1, number_if_segments-1 """
+    width = float(self._number_of_segments-barrier-1)
+    if width > 0:
+      dr, db, dg = float(r3 - r2), float(b3 - b2), float(g3 - g2)
+      step_r, step_g, step_b = dr/width, dg/width,db/width
+      for i in range(1,self._number_of_segments-barrier):
+        str_r, str_g, str_b = "","",""
+        if len(hex(int(r2 + i*step_r))[2:4]) < 2:
+          str_r = "0" + hex(int(r2 + i*step_r))[2:4]
+        else:
+          str_r = hex(int(r2 + i*step_r))[2:4]
+      
+        if len(hex(int(g2 + i*step_g))[2:4]) < 2:
+          str_g = "0" + hex(int(g2 + i*step_g))[2:4]
+        else:
+          str_g = hex(int(g2 + i*step_g))[2:4]
+    
+        if len(hex(int(b2 + i*step_b))[2:4]) < 2:
+          str_b = "0" + hex(int(b2 + i*step_b))[2:4]
+        else:
+          str_b = hex(int(b2 + i*step_b))[2:4]
+
+        self._colors.append("#%s%s%s" % (str_r, str_g, str_b))
+
+    """ the very last color """
+    self._colors.append(self._color_max[0:7])
+
+  def init_svg(self):
+    curr_ang = self._init_angle
+    step_angle = float(self._max_rotation)/self._number_of_segments
+    sin_1 = sinus(curr_ang)
+    cos_1 = cosinus(curr_ang)
+
+    x4 = self._origin_x + cos_1 * (self._radius_x - self._segment_thickness)
+    y4 = self._origin_x + sin_1 * (self._radius_y - self._segment_thickness)
+
+    svg_code = "<svg>\n"
+    for i in range(0, self._number_of_segments):
+      sin_1 = sinus(curr_ang)
+      cos_1 = cosinus(curr_ang)
+      sin_2 = sinus(curr_ang + step_angle)
+      cos_2 = cosinus(curr_ang + step_angle)
+
+      x4 = self._origin_x + cos_1 * (self._radius_x - self._segment_thickness)
+      y4 = self._origin_y + sin_1 * (self._radius_y - self._segment_thickness)
+      svg_code += "<path id=\"%s_bar_%d\" d=\"M%3.4f,%3.4f " % (self._id, i+1, x4, y4)
+      x1 = self._origin_x + cos_1 * (self._radius_x)
+      y1 = self._origin_y + sin_1 * (self._radius_y)
+      x2 = self._origin_x + cos_2 * (self._radius_x)
+      y2 = self._origin_x + sin_2 * (self._radius_y)
+      x3 = self._origin_x + cos_2 * (self._radius_x - self._segment_thickness)
+      y3 = self._origin_x + sin_2 * (self._radius_y - self._segment_thickness)
+      x4 = self._origin_x + cos_1 * (self._radius_x - self._segment_thickness)
+      y4 = self._origin_y + sin_1 * (self._radius_y - self._segment_thickness)
+      svg_code += "L%3.4f %3.4f A%d,%d 0 0,1 %3.4f,%3.4f L%3.4f %3.4f A%d,%d 0 0,0 %3.4f,%3.4f z\" fill=\"#333344\"  stroke=\"#666666\" stroke-width=\"1\" />\n" % (x1, y1, self._radius_x, self._radius_y, x2, y2, x3, y3, self._radius_x, self._radius_y, x4, y4)
+      x4 = self._origin_x + cos_2 * (self._radius_x - self._segment_thickness)
+      y4 = self._origin_y + sin_2 * (self._radius_y - self._segment_thickness)
+      curr_ang += step_angle
+
+    
+    svg_code += "</svg>"
+    getattr(Dsp, self._id).graphics = svg_code
+    getattr(Dsp, self._id).dom.update()
+
+  def update_svg(self):
+    curr_ang = self._init_angle
+    step_angle = float(self._max_rotation)/self._number_of_segments
+
+    border = (float(self._number_of_segments)/100.0) * float(self._load)
+    real_ang = float(self._init_angle) + (float(self._max_rotation)/100.0) * float(self._load)
+    border = int(border)
+    for i in range(0, border):
+      if i < len(self._colors):
+        getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"] = self._colors[i]
+      else:
+        getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"] = "#ffff00"
+      getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke"] = "None"
+      getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke-width"] = 0
+
+    if border < self._number_of_segments:
+      for i in range(border, self._number_of_segments):
+        getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"] = "#333344"
+        getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke"] = "#666666"
+        getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke-width"] = 1
+    
+      if not self._fixed_font_color:
+        getattr(Dsp, "cpuload").color = self._colors[border]
+
+    getattr(Dsp, self._id).dom.update()
+
+main()
