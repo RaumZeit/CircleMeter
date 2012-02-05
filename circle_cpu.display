@@ -5,9 +5,9 @@
     <meta author="Ronny Lorenz"
           version="0.2"
           name="Circle Meter"
-          category="misc/utilities"
+          category="System/Misc"
           description="This desklet brings you circular 'meters' for your desktop. E.g. cpu-meter, ram-meter, etc..."
-          dependency="0.35.1"
+          dependency="0.35.3"
           preview=""/>
 
     <control id="sysinfo" interface="ISystem"/>
@@ -17,17 +17,10 @@
     </group>
 
     <prefs callback="preferences_callback">
-        <page label="Circle Meter">
+        <page label="Appearance">
+            <title label="Meter Selection"/>
             <enum label="SysInfo" id="meter_enum" bind="curr_meter"></enum>
-            <radio id="direction" label="Direction" bind="meter_direction" >
-                <item label="Clockwise" value="1"/>
-                <item label="CounterClockwise" value="-1"/>
-            </radio>
-            <integer  label="Segments:"
-                      id="number_of_segments"
-                      bind="number_of_segments"
-                      min="3"
-                      max="500"/>
+            <title label="Meter Dimensions"/>
             <integer  label="Segment Size:"
                       id="segment_thickness"
                       bind="segment_thickness"
@@ -43,34 +36,55 @@
                       bind="radius_y"
                       min="3"
                       max="50"/>
-            <integer  label="max. Rotation:"
-                      id="max_rotation"
-                      bind="max_rotation"
-                      min="5"
-                      max="360"/>
+            <title label="Meter Resolution"/>
+            <integer  label="Segments:"
+                      id="number_of_segments"
+                      bind="number_of_segments"
+                      min="3"
+                      max="500"/>
             <integer  label="Start Position:"
                       id="init_rotation"
                       bind="init_rotation"
                       min="0"
                       max="359"/>
+            <integer  label="max. Rotation:"
+                      id="max_rotation"
+                      bind="max_rotation"
+                      min="5"
+                      max="360"/>
+            <boolean  id="clockwise"
+                      label="Clockwise"
+                      bind="meter_direction"
+                      help="If unchecked, the direction of the meter is counter clockwise"/>
             <integer  label="Mean Value:"
                       id="mean_value"
                       bind="mean_value"
                       min="0"
                       max="100"/>
+            <title    label="Segment Colors"/>
+            <color    label="Min. Value Color:"
+                      id="color_min"
+                      bind="color_min"/>
+            <color    label="Mean Value Color:"
+                      id="color_mean"
+                      bind="color_mean"/>
+            <color    label="Max. Value Color:"
+                      id="color_max"
+                      bind="color_max"/>
+            <title    label="Label"/>
+            <boolean  label="use fixed Font Color"
+                      id="fixed_font_color"
+                      bind="fixed_font_color"
+                      help="If unchecked, the color of the label changes according to the peak value color of the meter"/>
+            <color    label="Font Color:"
+                      id="fixed_font_color_color"
+                      enabled="False"
+                      bind="Dsp.cpuload.color"/>
+            <font     label="Font Type:"
+                      bind="Dsp.cpuload.font"/>
 <!--
     <integer label="Update Interval:" bind="cpu_meter_update_interval" min="100" max="2000"/>
 -->
-        </page>
-        <page label="Colors">
-            <color label="Color 1:" id="color_min" bind="color_min"/>
-            <color label="Color 2:" id="color_mean" bind="color_mean"/>
-            <color label="Color 3:" id="color_max" bind="color_max"/>
-        </page>
-        <page label="Fonts">
-            <boolean label="use fixed Font Color" id="fixed_font_color" bind="fixed_font_color"/>
-            <color label="Font Color:" id="fixed_font" enabled="False" bind="Dsp.cpuload.color"/>
-            <font label="Font Type:" bind="Dsp.cpuload.font"/>
         </page>
     </prefs>
 

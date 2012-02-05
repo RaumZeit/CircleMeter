@@ -34,7 +34,7 @@ INIT_COLOR_MEAN         = "#ffff00ff"   # color for the mean value
 INIT_COLOR_MAX          = "#ff0000ff"   # color for the maximum value (i.e. 100.)
 INIT_COLOR_MEAN_VALUE   = 40            # mean value
 INIT_FIXED_COLOR        = False         # use fixed color for meter label or not
-INIT_DIRECTION          = 1             # direction of the meter (1 = clockwise, -1 = counterclockwise)
+INIT_CLOCKWISE          = True          # direction of the meter (1 = clockwise, -1 = counterclockwise)
 
 cpu_load_id = "cpuload"
 
@@ -53,7 +53,6 @@ update_interval = 750
 pi            = 3.14159265358979323846
 curr_meter    = "0"
 meter_objects = []
-meter_ids     = ("cpu_meter",)
 meter_configs = []
 meter_names   = ("CPU",)
 meter_binds   = (sysinfo.cpu_load,)
@@ -79,7 +78,7 @@ color_mean          = INIT_COLOR_MEAN
 color_max           = INIT_COLOR_MAX
 mean_value          = INIT_COLOR_MEAN_VALUE
 fixed_font_color    = INIT_FIXED_COLOR
-meter_direction     = str(INIT_DIRECTION)
+meter_direction     = bool(INIT_CLOCKWISE)
 
 """
 #####################################################
@@ -91,6 +90,7 @@ meter_direction     = str(INIT_DIRECTION)
 
 def main():
     global meter_configs
+    global meter_objects
 
     update_meter_enum()
 
@@ -99,11 +99,11 @@ def main():
     if meter_configs is not "nothing found":
         restore_from_configs()
     else:
-        for i in range(0, len(meter_ids)):
-            print "init %d. meter, id=%s" % (i, meter_ids[i])
-            meter = SysMeter(meter_ids[i])
-            meter.init_svg()
-            meter_objects.append(meter)
+        # create a default meter from scratch
+        meter_objects = []
+        meter = SysMeter("cpu_meter")
+        meter.init_svg()
+        meter_objects.append(meter)
 
     try:
         getattr(Dsp, "cpuload").x = Unit(50, PERCENT) 
@@ -175,7 +175,7 @@ def save_configurations():
     global meter_configs
 
     meter_configs = []
-    for idx in range(len(meter_ids)):
+    for idx in range(len(meter_objects)):
         config_string = (\
                           str(meter_objects[idx]._id),\
                           int(meter_objects[idx]._init_rotation),\
@@ -191,7 +191,7 @@ def save_configurations():
                           str(meter_objects[idx]._color_max),\
                           int(meter_objects[idx]._mean_value),\
                           bool(meter_objects[idx]._fixed_font_color),\
-                          int(meter_objects[idx]._direction)\
+                          bool(meter_objects[idx]._direction)\
                         )
         meter_configs.append(config_string)
 
@@ -223,22 +223,21 @@ def restore_from_configs():
 """
 
 def update_meter_enum():
-    Prefs.meter_enum.items =  [ ("%s" % meter_names[i], str(i)) for i in range(len(meter_ids)) ]
+    Prefs.meter_enum.items =  [ ("%s" % meter_names[i], str(i)) for i in range(len(meter_objects)) ]
 
-def set_prefs_values():
-    idx = int(curr_meter)
-    Prefs.init_rotation.value       = meter_objects[idx]._init_rotation
-    Prefs.radius_x.value            = meter_objects[idx]._radius_x
-    Prefs.radius_y.value            = meter_objects[idx]._radius_y
-    Prefs.max_rotation.value        = meter_objects[idx]._max_rotation
-    Prefs.number_of_segments.value  = meter_objects[idx]._number_of_segments
-    Prefs.segment_thickness.value   = meter_objects[idx]._segment_thickness
+def set_prefs_values(idx):
+    Prefs.init_rotation.value       = int(meter_objects[idx]._init_rotation)
+    Prefs.radius_x.value            = int(meter_objects[idx]._radius_x)
+    Prefs.radius_y.value            = int(meter_objects[idx]._radius_y)
+    Prefs.max_rotation.value        = int(meter_objects[idx]._max_rotation)
+    Prefs.number_of_segments.value  = int(meter_objects[idx]._number_of_segments)
+    Prefs.segment_thickness.value   = int(meter_objects[idx]._segment_thickness)
     Prefs.color_min.value           = meter_objects[idx]._color_min
     Prefs.color_mean.value          = meter_objects[idx]._color_mean
     Prefs.color_max.value           = meter_objects[idx]._color_max
-    Prefs.mean_value.value          = meter_objects[idx]._mean_value
-    Prefs.fixed_font_color.value    = meter_objects[idx]._fixed_font_color
-    Prefs.direction.value           = str(meter_objects[idx]._direction)
+    Prefs.mean_value.value          = int(meter_objects[idx]._mean_value)
+    Prefs.fixed_font_color.value    = bool(meter_objects[idx]._fixed_font_color)
+    Prefs.clockwise.value           = bool(meter_objects[idx]._direction)
 
 def preferences_callback(key, value):
     global number_of_segments, curr_meter
@@ -247,8 +246,8 @@ def preferences_callback(key, value):
 
     if key == "curr_meter":
         curr_meter = value
-        set_prefs_values()
         idx = int(curr_meter)
+        set_prefs_values(idx)
 
     elif key == "update_interval":
         cpu_meter_update_interval = value
@@ -260,7 +259,7 @@ def preferences_callback(key, value):
         print "Warning! Unknown prefs: %s=%s" % (key, value)
 
     if key == "fixed_font_color":
-        Prefs.fixed_font.enabled = value
+        Prefs.fixed_font_color_color.enabled = value
 
     save_configurations()
 
@@ -288,7 +287,7 @@ class SysMeter:
         self._color_max           = INIT_COLOR_MAX
         self._mean_value          = INIT_COLOR_MEAN_VALUE
         self._fixed_font_color    = INIT_FIXED_COLOR
-        self._direction           = INIT_DIRECTION
+        self._direction           = INIT_CLOCKWISE
         self._colors              = []
 
     def setAttribute(self, key, value):
@@ -325,7 +324,7 @@ class SysMeter:
         elif key == "fixed_font_color":
             self._fixed_font_color = bool(value)
         elif key == "meter_direction":
-            self._direction = int(value)
+            self._direction = bool(value)
         else:
             return False
 
@@ -423,7 +422,7 @@ class SysMeter:
         # create the svg image
         svg_code = "<svg width=\"100\" height=\"100\">"
         elements = range(0, self._number_of_segments)
-        if (self._direction == -1): elements.reverse()
+        if not self._direction: elements.reverse()
 
         for i in elements:
             sin_1 = sine(curr_ang)
