@@ -102,7 +102,7 @@ def main():
         for i in range(0, len(meter_ids)):
             print "init %d. meter, id=%s" % (i, meter_ids[i])
             meter = SysMeter(meter_ids[i])
-            meter.initialize()
+            meter.init_svg()
             meter_objects.append(meter)
 
     try:
@@ -153,16 +153,23 @@ def cosine(alpha):
 #####################################################
 """
 
-def restore_from_configs():
-    global meter_objects
-
-    for i in range(len(meter_configs)):
-        print "init %d. meter, id=%s (from stored config)" % (i, meter_ids[i])
-        meter = SysMeter(meter_ids[i])
-        meter.set_config(meter_configs[i])
-        meter.initialize()
-        meter_objects.append(meter)
-
+# a list of all attributes that may be set by setAttribute() method of Meter objects
+CircleMeterAttributeList =  [ "id",
+                              "init_rotation",
+                              "origin_x",
+                              "origin_y",
+                              "radius_x",
+                              "radius_y",
+                              "max_rotation",
+                              "number_of_segments",
+                              "segment_thickness",
+                              "color_min",
+                              "color_mean",
+                              "color_max",
+                              "mean_value",
+                              "fixed_font_color",
+                              "meter_direction"
+                            ]
 
 def save_configurations():
     global meter_configs
@@ -191,6 +198,22 @@ def save_configurations():
     set_config("meter_configs", meter_configs)
 
 
+
+def restore_from_configs():
+    global meter_objects
+
+    # destroy all existing meters
+    meter_objects = []
+
+    # recreate new meters from config
+    for i in range(len(meter_configs)):
+        print "init %d. meter, id=%s (from stored config)" % (i, meter_configs[i][0:1])
+        meter = SysMeter(meter_configs[i][0:1])
+        for k, v in zip(CircleMeterAttributeList, meter_configs[i]):
+            meter.setAttribute(k, v)
+        meter.init_svg()
+        meter_objects.append(meter)
+
 """
 #####################################################
 #                                                   #
@@ -215,6 +238,7 @@ def set_prefs_values():
     Prefs.color_max.value           = meter_objects[idx]._color_max
     Prefs.mean_value.value          = meter_objects[idx]._mean_value
     Prefs.fixed_font_color.value    = meter_objects[idx]._fixed_font_color
+    Prefs.direction.value           = str(meter_objects[idx]._direction)
 
 def preferences_callback(key, value):
     global number_of_segments, curr_meter
@@ -226,59 +250,17 @@ def preferences_callback(key, value):
         set_prefs_values()
         idx = int(curr_meter)
 
-    elif key == "number_of_segments":
-        meter_objects[idx]._number_of_segments = value
-        meter_objects[idx].initialize()
-
-    elif key == "max_rotation":
-        meter_objects[idx]._max_rotation = value
-        meter_objects[idx].initialize()
-
-    elif key == "init_rotation":
-        meter_objects[idx]._init_rotation = value
-        meter_objects[idx].initialize()
-
-    elif key == "radius_x":
-        meter_objects[idx]._radius_x = value
-        meter_objects[idx].initialize()
-
-    elif key == "radius_y":
-        meter_objects[idx]._radius_y = value
-        meter_objects[idx].initialize()
-
-    elif key == "color_min":
-        meter_objects[idx]._color_min = value
-        meter_objects[idx].initialize()
-
-    elif key == "color_mean":
-        meter_objects[idx]._color_mean = value
-        meter_objects[idx].initialize()
-
-    elif key == "color_max":
-        meter_objects[idx]._color_max = value
-        meter_objects[idx].initialize()
-
-    elif key == "mean_value":
-        meter_objects[idx]._mean_value = value
-        meter_objects[idx].initialize()
-
     elif key == "update_interval":
         cpu_meter_update_interval = value
 
-    elif key == "fixed_font_color":
-        meter_objects[idx]._fixed_font_color = value
-        Prefs.fixed_font.enabled = value
-
-    elif key == "segment_thickness":
-        meter_objects[idx]._segment_thickness = value
-        meter_objects[idx].initialize()
-
-    elif (key == "meter_direction"):
-        meter_objects[idx]._direction = int(value)
-        meter_objects[idx].initialize()
+    elif meter_objects[idx].setAttribute(key, value):
+        meter_objects[idx].init_svg()
 
     else:
-        print "unknown prefs key: %s %s" % (key, value)
+        print "Warning! Unknown prefs: %s=%s" % (key, value)
+
+    if key == "fixed_font_color":
+        Prefs.fixed_font.enabled = value
 
     save_configurations()
 
@@ -309,17 +291,45 @@ class SysMeter:
         self._direction           = INIT_DIRECTION
         self._colors              = []
 
+    def setAttribute(self, key, value):
+        if key == "id":
+            self._id = value
+        if key == "radius_x":
+            self._radius_x = int(value)
+        elif key == "radius_y":
+            self._radius_y = int(value)
+        elif key == "origin_x":
+            self._origin_x = int(value)
+        elif key == "origin_y":
+            self._origin_y = int(value)
+        elif key == "init_rotation":
+            self._init_rotation = int(value)
+        elif key == "max_rotation":
+            self._max_rotation = int(value)
+        elif key == "number_of_segments":
+            self._number_of_segments = int(value)
+        elif key == "segment_thickness":
+            self._segment_thickness = int(value)
+        elif key == "color_min":
+            self._color_min = value
+            self.make_colors()
+        elif key == "color_mean":
+            self._color_mean = value
+            self.make_colors()
+        elif key == "color_max":
+            self._color_max = value
+            self.make_colors()
+        elif key == "mean_value":
+            self._mean_value = value
+            self.make_colors()
+        elif key == "fixed_font_color":
+            self._fixed_font_color = bool(value)
+        elif key == "meter_direction":
+            self._direction = int(value)
+        else:
+            return False
 
-    def initialize(self):
-        SysMeter.make_colors(self)
-        SysMeter.init_svg(self)
-        SysMeter.update_svg(self)
-
-    def set_config(self, config):
-        self._id, self._init_rotation, self._origin_x, self._origin_y                 = config[0:4]
-        self._radius_x, self._radius_y, self._max_rotation, self._number_of_segments  = config[4:8]
-        self._segment_thickness, self._color_min, self._color_mean, self._color_max   = config[8:12]
-        self._mean_value, self._fixed_font_color                                      = config[12:14]
+        return True
 
     def make_colors(self):
       self._colors = []
@@ -440,10 +450,7 @@ class SysMeter:
         getattr(Dsp, self._id).dom.update()
 
     def update_svg(self):
-        curr_ang    = self._init_rotation
-        step_angle  = float(self._max_rotation) / self._number_of_segments
         border      = int((float(self._number_of_segments) / 100.0) * float(self._load))
-        real_ang    = float(self._init_rotation) + (float(self._max_rotation) / 100.0) * float(self._load)
 
         for i in range(0, border):
             if i < len(self._colors):

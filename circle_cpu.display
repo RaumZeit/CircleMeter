@@ -19,7 +19,7 @@
     <prefs callback="preferences_callback">
         <page label="Circle Meter">
             <enum label="SysInfo" id="meter_enum" bind="curr_meter"></enum>
-            <radio id="directon" label="Direction" bind="meter_direction" >
+            <radio id="direction" label="Direction" bind="meter_direction" >
                 <item label="Clockwise" value="1"/>
                 <item label="CounterClockwise" value="-1"/>
             </radio>
