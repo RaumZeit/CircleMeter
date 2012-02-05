@@ -47,6 +47,13 @@ cm_group_id   = "CircleMeterGroup"
 cm_label_id   = "CircleMeterLabel"
 cm_canvas_id  = "CircleMeterCanvas"
 
+cm_prefs_bound_resource_id    = "CircleMeter_Current_Bind"
+cm_prefs_label_show_id        = "CircleMeter_Current_LabelShow"
+cm_prefs_label_format_id      = "CircleMeter_Current_LabelFormat"
+cm_prefs_label_fixed_font_id  = "CircleMeter_Current_LabelFixedFont"
+cm_prefs_label_color_id       = "CircleMeter_Current_LabelColor"
+cm_prefs_label_font_id        = "CircleMeter_Current_LabelFont"
+
 
 """
 #####################################################
@@ -210,6 +217,9 @@ def sine(alpha):
 def cosine(alpha):
     return sine(alpha + 90.0)
 
+def hx(dc):
+    return hex(int(dc))[2:4]
+
 """
 #####################################################
 #                                                   #
@@ -296,22 +306,22 @@ def update_meter_bind_enum():
 def set_prefs_values():
     idx = int(CircleMeter_Current_ID)
 
-    Prefs.CircleMeter_Current_LabelShow.value\
+    getattr(Prefs, cm_prefs_label_show_id).value\
       = CircleMeter_Current_LabelShow\
       = bool(meter_objects[idx]._label_show)
-    Prefs.CircleMeter_Current_LabelFormat.value\
+    getattr(Prefs, cm_prefs_label_format_id).value\
       = CircleMeter_Current_LabelFormat\
       = str(meter_objects[idx]._label_format)
-    Prefs.CircleMeter_Current_LabelFixedFont.value\
+    getattr(Prefs, cm_prefs_label_fixed_font_id).value\
       = CircleMeter_Current_LabelFixedFont\
       = bool(meter_objects[idx]._fixed_font_color)
-    Prefs.CircleMeter_Current_LabelColor.value\
+    getattr(Prefs, cm_prefs_label_color_id).value\
       = CircleMeter_Current_LabelColor\
       = str(meter_objects[idx]._label_color)
-    Prefs.CircleMeter_Current_LabelFont.value\
+    getattr(Prefs, cm_prefs_label_font_id).value\
       = CircleMeter_Current_LabelFont\
       = str(meter_objects[idx]._label_font)
-    Prefs.CircleMeter_Current_Bind.value\
+    getattr(Prefs, cm_prefs_bound_resource_id).value\
       = CircleMeter_Current_Bind\
       = str(meter_objects[idx]._bind)
 
@@ -474,22 +484,12 @@ class SysMeter:
           dr, db, dg = float(r2 - r1), float(b2 - b1), float(g2 - g1)
           step_r, step_g, step_b = dr/width, dg/width, db/width
           for i in range(1,barrier-1):
-              str_r, str_g, str_b = "","",""
-              # R
-              if len(hex(int(r1 + i*step_r))[2:4]) < 2:
-                  str_r = "0" + hex(int(r1 + i*step_r))[2:4]
-              else:
-                  str_r = hex(int(r1 + i*step_r))[2:4]
-              # G
-              if len(hex(int(g1 + i*step_g))[2:4]) < 2:
-                  str_g = "0" + hex(int(g1 + i*step_g))[2:4]
-              else:
-                  str_g = hex(int(g1 + i*step_g))[2:4]
-              # B
-              if len(hex(int(b1 + i*step_b))[2:4]) < 2:
-                  str_b = "0" + hex(int(b1 + i*step_b))[2:4]
-              else:
-                  str_b = hex(int(b1 + i*step_b))[2:4]
+              str_r = hx(r1 + i*step_r)
+              if len(str_r) < 2:  str_r = "0" + str_r
+              str_g = hx(g1 + i*step_g)
+              if len(str_g) < 2:  str_g = "0" + str_g
+              str_b = hx(b1 + i*step_b)
+              if len(str_b) < 2:  str_b = "0" + str_b
               # append to list of colors
               self._colors.append("#%s%s%s" % (str_r, str_g, str_b))
 
