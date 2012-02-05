@@ -8,13 +8,15 @@
           category="System/Misc"
           description="This desklet brings you circular 'meters' for your desktop. E.g. cpu-meter, ram-meter, etc..."
           dependency="0.35.3"
-          preview=""/>
+          preview="gfx/CircleMeter.png"/>
 
     <control id="sysinfo" interface="ISystem"/>
 
     <array  id="CircleMeterArray"
             length="1">
-        <group id="CircleMeterGroup">
+        <group  id="CircleMeterGroup"
+                bg-color="#00000000"
+                bg-uri="None">
             <canvas id="CircleMeterCanvas"
                     width="2.5cm"
                     height="2.5cm"/>
@@ -26,90 +28,155 @@
     </array>
 
     <prefs callback="preferences_callback">
-        <page label="Layout">
+        <page label="General">
             <title label="Meter Dimensions"/>
+            <float    label="Meter Size"
+                      id="CircleMeter_Size"
+                      bind="CircleMeter_Size"
+                      min="0.1"
+                      max="50.0"
+                      help="The size of each meter in units of cm"/>
             <integer  label="Segment Size:"
-                      id="segment_thickness"
-                      bind="segment_thickness"
+                      id="CircleMeter_SegmentThickness"
+                      bind="CircleMeter_SegmentThickness"
                       min="3"
                       max="24"/>
             <integer  label="Radius X:"
-                      id="radius_x"
-                      bind="radius_x"
+                      id="CircleMeter_RadiusX"
+                      bind="CircleMeter_RadiusX"
                       min="3"
                       max="50"/>
             <integer  label="Radius Y:"
-                      id="radius_y"
-                      bind="radius_y"
+                      id="CircleMeter_RadiusY"
+                      bind="CircleMeter_RadiusY"
                       min="3"
                       max="50"/>
             <title label="Meter Resolution"/>
             <integer  label="Segments:"
-                      id="number_of_segments"
-                      bind="number_of_segments"
+                      id="CircleMeter_SegmentNumber"
+                      bind="CircleMeter_SegmentNumber"
                       min="3"
                       max="500"/>
             <integer  label="Start Position:"
-                      id="init_rotation"
-                      bind="init_rotation"
+                      id="CircleMeter_StartAngle"
+                      bind="CircleMeter_StartAngle"
                       min="0"
                       max="359"/>
             <integer  label="max. Rotation:"
-                      id="max_rotation"
-                      bind="max_rotation"
+                      id="CircleMeter_MaxAngle"
+                      bind="CircleMeter_MaxAngle"
                       min="5"
                       max="360"/>
-            <boolean  id="clockwise"
+            <boolean  id="CircleMeter_Clockwise"
                       label="Clockwise"
-                      bind="meter_direction"
+                      bind="CircleMeter_Clockwise"
                       help="If unchecked, the direction of the meter is counter clockwise"/>
         </page>
-        <page label="Color">
-            <title    label="Color gradient" help="The color gradient for the displayed sements"/>
+        <page label="Colors">
+            <title    label="Gradient Colors"
+                      help="The color gradient for the displayed sements"/>
             <color    label="Min. Value Color:"
-                      id="color_min"
-                      bind="color_min"
+                      id="CircleMeter_SegmentColorMin"
+                      bind="CircleMeter_SegmentColorMin"
                       help="The color used for minimum value of the meter"/>
             <color    label="Mean Value Color:"
-                      id="color_mean"
-                      bind="color_mean"
+                      id="CircleMeter_SegmentColorMean"
+                      bind="CircleMeter_SegmentColorMean"
                       help="The color used for mean value of the meter"/>
             <color    label="Max. Value Color:"
-                      id="color_max"
-                      bind="color_max"
+                      id="CircleMeter_SegmentColorMax"
+                      bind="CircleMeter_SegmentColorMax"
                       help="The color used for maximum value of the meter"/>
             <integer  label="Mean Value:"
-                      id="mean_value"
-                      bind="mean_value"
+                      id="CircleMeter_SegmentColorMeanValue"
+                      bind="CircleMeter_SegmentColorMeanValue"
                       min="0"
                       max="100"
                       help="The mean value that is used for interpolation of the colors above"/>
+            <title    label="Segment Colors"
+                      help="The colors used for the displayed sements"/>
+            <color    label="Segment Stroke Color:"
+                      id="CircleMeter_SegmentStrokeColor"
+                      bind="CircleMeter_SegmentStrokeColor"
+                      help="The color used for the frame arround the segments of the meter"/>
+            <boolean  label="Stroke Full Segments"
+                      id="CircleMeter_SegmentStrokeFull"
+                      bind="CircleMeter_SegmentStrokeFull"
+                      help="If checked, a frame with the stroke color will be placed arround filled segments of the meter"/>
+            <boolean  label="Stroke Empty Segments"
+                      id="CircleMeter_SegmentStrokeEmpty"
+                      bind="CircleMeter_SegmentStrokeEmpty"
+                      help="If checked, a frame with the stroke color will be placed arround empty segments of the meter"/>
+            <color    label="Segment Background Color:"
+                      id="CircleMeter_SegmentBackgroundColor"
+                      bind="CircleMeter_SegmentBackgroundColor"
+                      help="The color used for the segment background of the meter"/>
+            <boolean  label="Show Segment Background"
+                      id="CircleMeter_SegmentBackgroundShow"
+                      bind="CircleMeter_SegmentBackgroundShow"
+                      help="If checked, the background of empty segments is displayed"/>
+<!--
+            <title    label="Background"
+                      help="The Background color/image used for the meters"/>
+            <boolean  label="Show Background Image"
+                      id="CircleMeter_BackgroundImageShow"
+                      bind="CircleMeter_BackgroundImageShow"
+                      help="Check this box to display a background image"/>
+            <uri      id="CircleMeter_BackgroundImageURI"
+                      label="Background Image:"
+                      bind="CircleMeter_BackgroundImageURI"/>
+            <color    label="Background Color:"
+                      id="CircleMeter_BackgroundColor"
+                      bind="CircleMeter_BackgroundColor"
+                      help="The color used as meter background"/>
+-->
+
+
         </page>
-        <page label="Circle Meters">
+        <page label="Meter Preferences">
             <title label="Meter Selection"/>
-            <enum label="SysInfo" id="meter_enum" bind="curr_meter"></enum>
-            <integer  label="Mean Value:"
-                      id="mean_value"
-                      bind="mean_value"
-                      min="0"
-                      max="100"/>
+            <enum label="SysInfo" id="meter_enum" bind="CircleMeter_Current_ID"></enum>
+            <title    label="Bind to Resource"/>
+            <enum     label="Possible Binds:"
+                      id="CircleMeter_Current_Bind"
+                      bind="CircleMeter_Current_Bind"
+                      help="Select the resource this meter is bound to">
+            </enum>
             <title    label="Label"/>
+            <boolean  label="Show Label"
+                      id="CircleMeter_Current_LabelShow"
+                      bind="CircleMeter_Current_LabelShow"/>
+            <string   label="Label Format"
+                      id="CircleMeter_Current_LabelFormat"
+                      bind="CircleMeter_Current_LabelFormat"
+                      help="The format of the label. Use %v for substitution with the current value and %% for the percent sign"/>
             <boolean  label="Use a fixed Font Color"
-                      id="fixed_font_color"
-                      bind="fixed_font_color"
+                      id="CircleMeter_Current_LabelFixedFont"
+                      bind="CircleMeter_Current_LabelFixedFont"
                       help="If unchecked, the color of the label changes according to the peak value color of the meter"/>
             <color    label="Font Color:"
-                      id="fixed_font_color_color"
+                      id="CircleMeter_Current_LabelColor"
                       enabled="False"
-                      bind="label_color"/>
+                      bind="CircleMeter_Current_LabelColor"/>
             <font     label="Font Type:"
-                      bind="label_font"/>
-
-<!--
-    <integer label="Update Interval:" bind="cpu_meter_update_interval" min="100" max="2000"/>
--->
+                      id="CircleMeter_Current_LabelFont"
+                      bind="CircleMeter_Current_LabelFont"/>
         </page>
-
+<!--
+        <page label="Meter Management">
+            <title label="Available Meters"/>
+            <title label="Actions"/>
+            <button label="Add"
+                    help="Just a simple button."
+                    callback="my_personal_callback" />
+            <button label="Remove"
+                    help="Just a simple button."
+                    callback="my_personal_callback" />
+            <button label="Rename"
+                    help="Just a simple button."
+                    callback="my_personal_callback" />
+        </page>
+-->
     </prefs>
 
     <script uri="cpu_meter.script"/>
