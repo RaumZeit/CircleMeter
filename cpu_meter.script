@@ -20,6 +20,8 @@
 #                                                   #
 #####################################################
 """
+INIT_NAME               = "CPU Load Meter"
+INIT_BIND               = "cpu_load"
 INIT_LOAD               = 100           # A meter starts with 100% load
 INIT_ROTATION           = 135           # angular rotation of the first element
 INIT_ORIGIN_X           = 50            # do not change this value
@@ -33,10 +35,10 @@ INIT_COLOR_MIN          = "#00ff00ff"   # color for the minimum value (i.e. 0.)
 INIT_COLOR_MEAN         = "#ffff00ff"   # color for the mean value
 INIT_COLOR_MAX          = "#ff0000ff"   # color for the maximum value (i.e. 100.)
 INIT_COLOR_MEAN_VALUE   = 40            # mean value
+INIT_LABEL_FONT         = ""
+INIT_LABEL_COLOR        = "#ff0000ff"
 INIT_FIXED_COLOR        = False         # use fixed color for meter label or not
 INIT_CLOCKWISE          = True          # direction of the meter (1 = clockwise, -1 = counterclockwise)
-
-cpu_load_id = "cpuload"
 
 update_interval = 750
 
@@ -51,12 +53,9 @@ update_interval = 750
 """
 
 pi            = 3.14159265358979323846
-curr_meter    = "0"
 meter_objects = []
 meter_configs = []
-meter_names   = ("CPU",)
-meter_binds   = (sysinfo.cpu_load,)
-SVG_PATH      = "<path  id=\"%s_bar_%d\"\
+SVG_PATH      = "<path  id=\"bar_%d\"\
                         d=\"M%3.4f,%3.4f L%3.4f %3.4f A%d,%d 0 0,1 %3.4f,%3.4f L%3.4f %3.4f A%d,%d 0 0,0 %3.4f,%3.4f z\"\
                         fill=\"#333344\"\
                         stroke=\"#666666\"\
@@ -65,6 +64,7 @@ SVG_PATH      = "<path  id=\"%s_bar_%d\"\
 #
 # Values below are used as bindings for the appropriate prefs dialogs
 #
+curr_meter          = "0"
 init_rotation       = INIT_ROTATION
 origin_x            = INIT_ORIGIN_X
 origin_y            = INIT_ORIGIN_Y
@@ -79,6 +79,8 @@ color_max           = INIT_COLOR_MAX
 mean_value          = INIT_COLOR_MEAN_VALUE
 fixed_font_color    = INIT_FIXED_COLOR
 meter_direction     = bool(INIT_CLOCKWISE)
+label_color         = INIT_LABEL_COLOR
+label_font          = ""
 
 """
 #####################################################
@@ -91,8 +93,7 @@ meter_direction     = bool(INIT_CLOCKWISE)
 def main():
     global meter_configs
     global meter_objects
-
-    update_meter_enum()
+    global curr_meter
 
     meter_configs = get_config( "meter_configs", "nothing found")
 
@@ -101,15 +102,15 @@ def main():
     else:
         # create a default meter from scratch
         meter_objects = []
-        meter = SysMeter("cpu_meter")
+        meter = SysMeter(INIT_NAME)
         meter.init_svg()
         meter_objects.append(meter)
 
-    try:
-        getattr(Dsp, "cpuload").x = Unit(50, PERCENT) 
-        getattr(Dsp, "cpuload").y = Unit(50, PERCENT)
-    except:
-        print "blabla"
+    for idx in range(len(meter_objects)):
+        UpdateMeterPosition(idx)
+
+    update_meter_enum()
+    set_prefs_values() # we should always have at least one meter
 
     add_timer(update_interval, update_loads)
 
@@ -120,20 +121,31 @@ def main():
 #  """
 #  return
 
-def update_loads(new_value=None):
-    cpu_load = float(sysinfo.cpu_load)
-    if cpu_load_id != None:
-        try:
-            getattr(Dsp, cpu_load_id).value = "%3.2f%%" % cpu_load
-        except:
-            print "bla"
+def UpdateMeterPosition(idx):
+    try:
+        getattr(Dsp, "CircleMeterLabel")[idx].x = Unit(50, PERCENT) 
+        getattr(Dsp, "CircleMeterLabel")[idx].y = Unit(50, PERCENT)
+    except:
+        print "Warning! Could not update CircleMeter %d's position" % idx
 
-    for i in range(0, len(meter_objects)):
-        try:
-            meter_objects[i]._load = float(cpu_load)
-            meter_objects[i].update_svg()
-        except:
-            print "could not update svg"
+
+def update_loads():
+    # put all possible ressources that should be displayable down here
+    for i in range(len(meter_objects)):
+        value = -1.
+        # check whether we display the cpu load or not
+        if meter_objects[i]._bind == "cpu_load":
+            value = float(sysinfo.cpu_load)
+
+        # if we dont know what to do we do nothing but warn
+        else:
+            print "Warning! Ressource %s not covered by update process" % meter_objects[i]._bind
+
+        if value >= 0.:
+            meter_objects[i]._load = value
+            meter_objects[i].update_meter()
+            getattr(Dsp, "CircleMeterLabel")[0].value = "%3.2f%%" % value
+
     return True
 
 def sine(alpha):
@@ -154,10 +166,9 @@ def cosine(alpha):
 """
 
 # a list of all attributes that may be set by setAttribute() method of Meter objects
-CircleMeterAttributeList =  [ "id",
+CircleMeterAttributeList =  [ "name",
+                              "bind",
                               "init_rotation",
-                              "origin_x",
-                              "origin_y",
                               "radius_x",
                               "radius_y",
                               "max_rotation",
@@ -168,7 +179,9 @@ CircleMeterAttributeList =  [ "id",
                               "color_max",
                               "mean_value",
                               "fixed_font_color",
-                              "meter_direction"
+                              "meter_direction",
+                              "label_font",
+                              "label_color"
                             ]
 
 def save_configurations():
@@ -177,10 +190,9 @@ def save_configurations():
     meter_configs = []
     for idx in range(len(meter_objects)):
         config_string = (\
-                          str(meter_objects[idx]._id),\
+                          str(meter_objects[idx]._name),\
+                          str(meter_objects[idx]._bind),\
                           int(meter_objects[idx]._init_rotation),\
-                          int(meter_objects[idx]._origin_x),\
-                          int(meter_objects[idx]._origin_y),\
                           int(meter_objects[idx]._radius_x),\
                           int(meter_objects[idx]._radius_y),\
                           int(meter_objects[idx]._max_rotation),\
@@ -191,7 +203,9 @@ def save_configurations():
                           str(meter_objects[idx]._color_max),\
                           int(meter_objects[idx]._mean_value),\
                           bool(meter_objects[idx]._fixed_font_color),\
-                          bool(meter_objects[idx]._direction)\
+                          bool(meter_objects[idx]._direction),\
+                          str(meter_objects[idx]._label_font),\
+                          str(meter_objects[idx]._label_font)
                         )
         meter_configs.append(config_string)
 
@@ -207,8 +221,8 @@ def restore_from_configs():
 
     # recreate new meters from config
     for i in range(len(meter_configs)):
-        print "init %d. meter, id=%s (from stored config)" % (i, meter_configs[i][0:1])
-        meter = SysMeter(meter_configs[i][0:1])
+        print "Init %d. Circle Meter: \"%s\" (from stored config)" % (i+1, (meter_configs[i][0]))
+        meter = SysMeter(meter_configs[i][0]) # call the constructor with the name of the meter
         for k, v in zip(CircleMeterAttributeList, meter_configs[i]):
             meter.setAttribute(k, v)
         meter.init_svg()
@@ -223,9 +237,11 @@ def restore_from_configs():
 """
 
 def update_meter_enum():
-    Prefs.meter_enum.items =  [ ("%s" % meter_names[i], str(i)) for i in range(len(meter_objects)) ]
+    Prefs.meter_enum.items =  [ ("%s" % meter_objects[i]._name, str(i)) for i in range(len(meter_objects)) ]
 
-def set_prefs_values(idx):
+def set_prefs_values():
+    idx = int(curr_meter)
+
     Prefs.init_rotation.value       = int(meter_objects[idx]._init_rotation)
     Prefs.radius_x.value            = int(meter_objects[idx]._radius_x)
     Prefs.radius_y.value            = int(meter_objects[idx]._radius_y)
@@ -240,14 +256,13 @@ def set_prefs_values(idx):
     Prefs.clockwise.value           = bool(meter_objects[idx]._direction)
 
 def preferences_callback(key, value):
-    global number_of_segments, curr_meter
+    global curr_meter
 
     idx = int(curr_meter)
 
     if key == "curr_meter":
         curr_meter = value
-        idx = int(curr_meter)
-        set_prefs_values(idx)
+        set_prefs_values()
 
     elif key == "update_interval":
         cpu_meter_update_interval = value
@@ -272,7 +287,8 @@ def preferences_callback(key, value):
 """
 class SysMeter:
     def __init__(self, identification):
-        self._id                  = identification
+        self._name                = identification
+        self._bind                = INIT_BIND
         self._load                = INIT_LOAD
         self._init_rotation       = INIT_ROTATION
         self._origin_x            = INIT_ORIGIN_X
@@ -288,19 +304,19 @@ class SysMeter:
         self._mean_value          = INIT_COLOR_MEAN_VALUE
         self._fixed_font_color    = INIT_FIXED_COLOR
         self._direction           = INIT_CLOCKWISE
+        self._label_font          = INIT_LABEL_FONT
+        self._label_color         = INIT_LABEL_COLOR
         self._colors              = []
 
     def setAttribute(self, key, value):
-        if key == "id":
-            self._id = value
-        if key == "radius_x":
+        if key == "name":
+            self._name = value
+        elif key == "bind":
+            self._bind = value
+        elif key == "radius_x":
             self._radius_x = int(value)
         elif key == "radius_y":
             self._radius_y = int(value)
-        elif key == "origin_x":
-            self._origin_x = int(value)
-        elif key == "origin_y":
-            self._origin_y = int(value)
         elif key == "init_rotation":
             self._init_rotation = int(value)
         elif key == "max_rotation":
@@ -325,6 +341,10 @@ class SysMeter:
             self._fixed_font_color = bool(value)
         elif key == "meter_direction":
             self._direction = bool(value)
+        elif key == "label_font":
+            self._label_font = value
+        elif key == "label_color":
+            self._label_color = value
         else:
             return False
 
@@ -349,7 +369,7 @@ class SysMeter:
       self._colors.append(self._color_min[0:7])
 
       """
-      First colors on range 2...barrier-1
+      First colors in range 2...barrier-1
       """
       width = float(barrier-2)
       if width > 0.:
@@ -438,37 +458,37 @@ class SysMeter:
             y3 = self._origin_x + sin_2 * (self._radius_y - self._segment_thickness)
             x4 = self._origin_x + cos_1 * (self._radius_x - self._segment_thickness)
             y4 = self._origin_y + sin_1 * (self._radius_y - self._segment_thickness)
-            svg_code += SVG_PATH % (self._id,  i+1, x4, y4, x1, y1, self._radius_x,\
+            svg_code += SVG_PATH % (i+1, x4, y4, x1, y1, self._radius_x,\
                                     self._radius_y, x2, y2, x3, y3, self._radius_x,\
                                     self._radius_y, x4, y4)
             curr_ang += step_angle
         svg_code += "</svg>"
 
         # init and update the svg dom
-        getattr(Dsp, self._id).graphics = svg_code
-        getattr(Dsp, self._id).dom.update()
+        getattr(Dsp, "CircleMeterCanvas")[0].graphics = svg_code
+        getattr(Dsp, "CircleMeterCanvas")[0].dom.update()
 
-    def update_svg(self):
+    def update_meter(self):
         border      = int((float(self._number_of_segments) / 100.0) * float(self._load))
 
         for i in range(0, border):
             if i < len(self._colors):
-                getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"] = self._colors[i]
+                getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["fill"] = self._colors[i]
             else:
-                getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"] = "#ffff00"
+                getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["fill"] = "#ffff00"
 
-            getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke"]       = "None"
-            getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke-width"] = 0
+            getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["stroke"]       = "None"
+            getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["stroke-width"] = 0
 
         if border < self._number_of_segments:
             for i in range(border, self._number_of_segments):
-                getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["fill"]         = "#333344"
-                getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke"]       = "#666666"
-                getattr(Dsp, self._id).dom.get("%s_bar_%d" % (self._id, i+1))["stroke-width"] = 1
+                getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["fill"]         = "#333344"
+                getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["stroke"]       = "#666666"
+                getattr(Dsp, "CircleMeterCanvas")[0].dom.get("bar_%d" % (i+1))["stroke-width"] = 1
 
-            if not self._fixed_font_color:
-                getattr(Dsp, "cpuload").color = self._colors[border]
+        if not self._fixed_font_color:
+            getattr(Dsp, "CircleMeterLabel")[0].color = self._colors[border]
 
-        getattr(Dsp, self._id).dom.update()
+        getattr(Dsp, "CircleMeterCanvas")[0].dom.update()
 
 main()

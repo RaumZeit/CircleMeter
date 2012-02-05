@@ -11,15 +11,22 @@
           preview=""/>
 
     <control id="sysinfo" interface="ISystem"/>
-    <group id="meter_object">
-        <canvas id="cpu_meter" width="2.5cm" height="2.5cm"/>
-        <label id="cpuload" value="not started" color="red" anchor="center"/>
-    </group>
+
+    <array  id="CircleMeterArray"
+            length="1">
+        <group id="CircleMeterGroup">
+            <canvas id="CircleMeterCanvas"
+                    width="2.5cm"
+                    height="2.5cm"/>
+            <label  id="CircleMeterLabel"
+                    value="not started"
+                    color="red"
+                    anchor="center"/>
+        </group>
+    </array>
 
     <prefs callback="preferences_callback">
-        <page label="Appearance">
-            <title label="Meter Selection"/>
-            <enum label="SysInfo" id="meter_enum" bind="curr_meter"></enum>
+        <page label="Layout">
             <title label="Meter Dimensions"/>
             <integer  label="Segment Size:"
                       id="segment_thickness"
@@ -56,36 +63,53 @@
                       label="Clockwise"
                       bind="meter_direction"
                       help="If unchecked, the direction of the meter is counter clockwise"/>
+        </page>
+        <page label="Color">
+            <title    label="Color gradient" help="The color gradient for the displayed sements"/>
+            <color    label="Min. Value Color:"
+                      id="color_min"
+                      bind="color_min"
+                      help="The color used for minimum value of the meter"/>
+            <color    label="Mean Value Color:"
+                      id="color_mean"
+                      bind="color_mean"
+                      help="The color used for mean value of the meter"/>
+            <color    label="Max. Value Color:"
+                      id="color_max"
+                      bind="color_max"
+                      help="The color used for maximum value of the meter"/>
+            <integer  label="Mean Value:"
+                      id="mean_value"
+                      bind="mean_value"
+                      min="0"
+                      max="100"
+                      help="The mean value that is used for interpolation of the colors above"/>
+        </page>
+        <page label="Circle Meters">
+            <title label="Meter Selection"/>
+            <enum label="SysInfo" id="meter_enum" bind="curr_meter"></enum>
             <integer  label="Mean Value:"
                       id="mean_value"
                       bind="mean_value"
                       min="0"
                       max="100"/>
-            <title    label="Segment Colors"/>
-            <color    label="Min. Value Color:"
-                      id="color_min"
-                      bind="color_min"/>
-            <color    label="Mean Value Color:"
-                      id="color_mean"
-                      bind="color_mean"/>
-            <color    label="Max. Value Color:"
-                      id="color_max"
-                      bind="color_max"/>
             <title    label="Label"/>
-            <boolean  label="use fixed Font Color"
+            <boolean  label="Use a fixed Font Color"
                       id="fixed_font_color"
                       bind="fixed_font_color"
                       help="If unchecked, the color of the label changes according to the peak value color of the meter"/>
             <color    label="Font Color:"
                       id="fixed_font_color_color"
                       enabled="False"
-                      bind="Dsp.cpuload.color"/>
+                      bind="label_color"/>
             <font     label="Font Type:"
-                      bind="Dsp.cpuload.font"/>
+                      bind="label_font"/>
+
 <!--
     <integer label="Update Interval:" bind="cpu_meter_update_interval" min="100" max="2000"/>
 -->
         </page>
+
     </prefs>
 
     <script uri="cpu_meter.script"/>
