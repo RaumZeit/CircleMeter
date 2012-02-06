@@ -28,7 +28,7 @@
     </array>
 
     <prefs callback="preferences_callback">
-        <page label="General">
+        <page label="Layout" icon="gfx/layout.png">
             <title label="Meter Dimensions"/>
             <float    label="Meter Size"
                       id="CircleMeter_Size"
@@ -72,7 +72,7 @@
                       bind="CircleMeter_Clockwise"
                       help="If unchecked, the direction of the meter is counter clockwise"/>
         </page>
-        <page label="Colors">
+        <page label="Colors" icon="gfx/color_wheel.png">
             <title    label="Gradient Colors"
                       help="The color gradient for the displayed sements"/>
             <color    label="Min. Value Color:"
@@ -133,7 +133,7 @@
 
 
         </page>
-        <page label="Meter Preferences">
+        <page label="Meter Preferences" icon="gfx/wrench.png">
             <title label="Meter Selection"/>
             <enum label="SysInfo" id="meter_enum" bind="CircleMeter_Current_ID"></enum>
             <title    label="Bind to Resource"/>
