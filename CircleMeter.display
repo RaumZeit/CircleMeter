@@ -3,7 +3,7 @@
 <display id="win" anchor="s" window-flags="below">
 
     <meta author="Ronny Lorenz"
-          version="0.2"
+          version="0.3"
           name="Circle Meter"
           category="System/Misc"
           description="This desklet brings you circular 'meters' for your desktop. E.g. cpu-meter, ram-meter, etc..."
@@ -73,6 +73,11 @@
                       help="If unchecked, the direction of the meter is counter clockwise"/>
         </page>
         <page label="Colors" icon="gfx/color_wheel.png">
+            <title    label="Circle Meter List"/>
+            <enum     label="Selected Meter"
+                      id="meter_enum3"
+                      bind="CircleMeter_Current_ID">
+            </enum>
             <title    label="Gradient Colors"
                       help="The color gradient for the displayed sements"/>
             <color    label="Min. Value Color:"
@@ -87,12 +92,6 @@
                       id="CircleMeter_SegmentColorMax"
                       bind="CircleMeter_SegmentColorMax"
                       help="The color used for maximum value of the meter"/>
-            <integer  label="Mean Value:"
-                      id="CircleMeter_SegmentColorMeanValue"
-                      bind="CircleMeter_SegmentColorMeanValue"
-                      min="0"
-                      max="100"
-                      help="The mean value that is used for interpolation of the colors above"/>
             <title    label="Segment Colors"
                       help="The colors used for the displayed sements"/>
             <color    label="Segment Stroke Color:"
@@ -115,6 +114,16 @@
                       id="CircleMeter_SegmentBackgroundShow"
                       bind="CircleMeter_SegmentBackgroundShow"
                       help="If checked, the background of empty segments is displayed"/>
+            <title    label="Label Colors"
+                      help="The colors used for the labels"/>
+            <boolean  label="Use a fixed Font Color"
+                      id="CircleMeter_Current_LabelFixedFont"
+                      bind="CircleMeter_Current_LabelFixedFont"
+                      help="If unchecked, the color of the label changes according to the peak value color of the meter"/>
+            <color    label="Label Font Color:"
+                      id="CircleMeter_Current_LabelColor"
+                      enabled="False"
+                      bind="CircleMeter_Current_LabelColor"/>
 <!--
             <title    label="Background"
                       help="The Background color/image used for the meters"/>
@@ -134,49 +143,80 @@
 
         </page>
         <page label="Meter Preferences" icon="gfx/wrench.png">
-            <title label="Meter Selection"/>
-            <enum label="SysInfo" id="meter_enum" bind="CircleMeter_Current_ID"></enum>
-            <title    label="Bind to Resource"/>
-            <enum     label="Possible Binds:"
-                      id="CircleMeter_Current_Bind"
-                      bind="CircleMeter_Current_Bind"
-                      help="Select the resource this meter is bound to">
+            <title    label="Circle Meter List"/>
+            <enum label="Selected Meter" id="meter_enum" bind="CircleMeter_Current_ID"></enum>
+            <title    label="Circle Meter Load Range"/>
+            <integer  label="Minimum value:"
+                      id="CircleMeter_Current_Min"
+                      bind="CircleMeter_Current_Min"
+                      max="100"/>
+            <enum     label="Minimum Value Base"
+                      id="CircleMeter_Current_MinBase"
+                      bind="CircleMeter_Current_MinBase"
+                      help="Choose the base for the minimum value.">
             </enum>
-            <title    label="Label"/>
+            <integer  label="Mean Value:"
+                      id="CircleMeter_Current_Mean"
+                      bind="CircleMeter_Current_Mean"
+                      min="1"
+                      max="100"
+                      help="The mean value that is used for interpolation of the colors above"/>
+            <enum     label="Mean Value Base"
+                      id="CircleMeter_Current_MeanBase"
+                      bind="CircleMeter_Current_MeanBase"
+                      help="Choose the base for the mean value.">
+            </enum>
+            <integer  label="Maximum value:"
+                      id="CircleMeter_Current_Max"
+                      bind="CircleMeter_Current_Max"
+                      min="2"/>
+            <enum     label="Maximum Value Base"
+                      id="CircleMeter_Current_MaxBase"
+                      bind="CircleMeter_Current_MaxBase"
+                      help="Choose the base for the maximum value.">
+            </enum>
+
+            <title    label="Circle Meter Label"/>
             <boolean  label="Show Label"
                       id="CircleMeter_Current_LabelShow"
                       bind="CircleMeter_Current_LabelShow"/>
-            <string   label="Label Format"
+            <info     label="Label Substitutions:"
+                      id="SubstitutionInfo"
+                      value=""
+                      bind="substitution_info"/>
+            <string   label="Label String"
                       id="CircleMeter_Current_LabelFormat"
                       bind="CircleMeter_Current_LabelFormat"
-                      help="The format of the label. Use %v for substitution with the current value and %% for the percent sign"/>
-            <boolean  label="Use a fixed Font Color"
-                      id="CircleMeter_Current_LabelFixedFont"
-                      bind="CircleMeter_Current_LabelFixedFont"
-                      help="If unchecked, the color of the label changes according to the peak value color of the meter"/>
-            <color    label="Font Color:"
-                      id="CircleMeter_Current_LabelColor"
-                      enabled="False"
-                      bind="CircleMeter_Current_LabelColor"/>
+                      help="The format of the label. Use %v for substitution with the current value and %% for the percent sign. Use %B to transform the value into a SI Byte, %b for SI bit"/>
             <font     label="Font Type:"
                       id="CircleMeter_Current_LabelFont"
                       bind="CircleMeter_Current_LabelFont"/>
         </page>
-<!--
         <page label="Meter Management">
-            <title label="Available Meters"/>
-            <title label="Actions"/>
-            <button label="Add"
-                    help="Just a simple button."
-                    callback="my_personal_callback" />
-            <button label="Remove"
-                    help="Just a simple button."
-                    callback="my_personal_callback" />
-            <button label="Rename"
-                    help="Just a simple button."
-                    callback="my_personal_callback" />
+            <title    label="Circle Meter List"/>
+            <enum     label="Selected Meter" id="meter_enum2" bind="CircleMeter_Current_ID"></enum>
+            <title    label="List Position"
+                      help="Move the meter within the display"/>
+            <button   label="Move Circle Meter Upwards"
+                      callback="remove_meter" />
+            <button   label="Move Circle Meter Downwards"
+                      callback="remove_meter" />
+            <title    label="General Properties"/>
+            <enum     label="Bind to Resource:"
+                      id="CircleMeter_Current_Bind"
+                      bind="CircleMeter_Current_Bind"
+                      help="Select the resource this meter is bound to">
+            </enum>
+            <string   label="Meter Name:"
+                      id="CircleMeter_Current_Name"
+                      bind="CircleMeter_Current_Name"/>
+            <button   label="Add as NEW Circle Meter"
+                      callback="add_meter" />
+            <button   label="Update Current Circle Meter"
+                      callback="update_meter" />
+            <button   label="Remove Current Circle Meter"
+                      callback="remove_meter" />
         </page>
--->
     </prefs>
 
     <script uri="cpu_meter.script"/>
